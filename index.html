@@ -654,7 +654,7 @@ async function submitKey() {
   btn.disabled = true; btn.textContent = 'Verifying…';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://es-critique-2026.businesswithsuhail.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': val, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] })
@@ -930,7 +930,7 @@ Be highly specific. Reference exact ES rule names. Note what you can and cannot 
 async function analyze() {
   analyzing = true;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://es-critique-2026.businesswithsuhail.workers.dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1109,7 +1109,7 @@ async function runTool(type) {
 
   try {
     const prompt = (esMode ? ES_TOOLS : GENERAL_TOOLS)[type];
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://es-critique-2026.businesswithsuhail.workers.dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
