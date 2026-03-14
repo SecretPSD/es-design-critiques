@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ES Design Critique — EssentiallySports</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f6;
+  --bg-tertiary: #f0efed;
+  --bg-success: #ecfdf5;
+  --text-primary: #0f0f0f;
+  --text-secondary: #555550;
+  --text-tertiary: #999994;
+  --bd3: rgba(0,0,0,0.10);
+  --bd2: rgba(0,0,0,0.18);
+  --bds: rgba(34,197,94,0.30);
+  --txs: #166534;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1a1a18;
+    --bg-secondary: #222220;
+    --bg-tertiary: #141412;
+    --bg-success: #052e16;
+    --text-primary: #f0efed;
+    --text-secondary: #aaa89f;
+    --text-tertiary: #6b6b66;
+    --bd3: rgba(255,255,255,0.09);
+    --bd2: rgba(255,255,255,0.15);
+    --bds: rgba(34,197,94,0.20);
+    --txs: #86efac;
+  }
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-tertiary);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ── API KEY SCREEN ── */
+#apiScreen {
+  background: var(--bg-primary);
+  border-radius: 20px;
+  border: 0.5px solid var(--bd3);
+  box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+  width: 100%;
+  max-width: 460px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-top: 4rem;
+}
+
+#apiScreen .logo-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem;
+}
+.api-ai-badge {
+  background: var(--text-primary); color: var(--bg-primary);
+  font-size: 10px; font-weight: 600; padding: 3px 8px;
+  border-radius: 20px; letter-spacing: .8px;
+}
+.api-es-badge {
+  background: #0A7DFA; color: #fff;
+  font-size: 10px; font-weight: 600; padding: 3px 8px;
+  border-radius: 20px; letter-spacing: .6px;
+}
+#apiScreen h1 {
+  font-size: 18px; font-weight: 500; color: var(--text-primary);
+  text-align: center; margin-bottom: 6px;
+}
+#apiScreen p {
+  font-size: 13px; color: var(--text-secondary);
+  text-align: center; line-height: 1.6; margin-bottom: 1.5rem;
+}
+
+.api-input-wrap { width: 100%; position: relative; margin-bottom: 10px; }
+.api-input-wrap input {
+  width: 100%; padding: 10px 40px 10px 12px;
+  border: 0.5px solid var(--bd2); border-radius: 9px;
+  background: var(--bg-secondary); color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  outline: none; transition: border-color .15s;
+  font-family: 'DM Mono', monospace, sans-serif;
+  letter-spacing: .5px;
+}
+.api-input-wrap input:focus { border-color: #6366f1; }
+.api-input-wrap input::placeholder { color: var(--text-tertiary); font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
+.eye-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--text-tertiary);
+  padding: 2px; line-height: 0;
+}
+.eye-btn:hover { color: var(--text-secondary); }
+
+.api-submit {
+  width: 100%; background: var(--text-primary); color: var(--bg-primary);
+  border: none; padding: 11px; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: opacity .2s; margin-bottom: 12px;
+}
+.api-submit:hover { opacity: .82; }
+.api-submit:disabled { opacity: .35; cursor: default; }
+
+.api-note {
+  font-size: 11px; color: var(--text-tertiary); text-align: center; line-height: 1.5;
+}
+.api-note a { color: #6366f1; text-decoration: none; }
+.api-note a:hover { text-decoration: underline; }
+
+.api-err {
+  font-size: 12px; color: #991b1b; background: #fef2f2;
+  border: 0.5px solid #fca5a5; border-radius: 8px;
+  padding: 8px 12px; width: 100%; text-align: center;
+  display: none; margin-bottom: 10px;
+}
+.api-err.show { display: block; }
+
+/* ── MAIN CARD ── */
+#mainCard {
+  display: none;
+  background: var(--bg-primary);
+  border-radius: 20px;
+  border: 0.5px solid var(--bd3);
+  width: 100%;
+  max-width: 940px;
+  overflow: hidden;
+  align-self: flex-start;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+}
+
+.card-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 0.5px solid var(--bd3);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+}
+.hdr-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ai-badge {
+  background: var(--text-primary); color: var(--bg-primary);
+  font-size: 10px; font-weight: 600; padding: 3px 8px;
+  border-radius: 20px; letter-spacing: .8px;
+}
+.es-badge {
+  background: #0A7DFA; color: #fff;
+  font-size: 10px; font-weight: 600; padding: 3px 8px;
+  border-radius: 20px; letter-spacing: .6px;
+  display: none;
+}
+.es-badge.on { display: inline-block; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.card-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+
+.status-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg-secondary); border: 0.5px solid var(--bd3);
+  border-radius: 99px; padding: 3px 9px;
+  font-size: 11px; color: var(--text-tertiary); white-space: nowrap;
+}
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pdot 2s infinite; }
+@keyframes pdot { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.logout-btn {
+  background: none; border: 0.5px solid var(--bd2); border-radius: 7px;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text-tertiary);
+  padding: 4px 10px; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.logout-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+/* mode bar */
+.mode-bar {
+  padding: .6rem 1.5rem;
+  border-bottom: 0.5px solid var(--bd3);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap;
+}
+.mode-lbl { font-size: 11px; color: var(--text-secondary); }
+.mode-lbl b { font-weight: 500; color: var(--text-primary); }
+
+.toggle-row { display: flex; align-items: center; gap: 7px; }
+.toggle-txt { font-size: 11px; color: var(--text-secondary); }
+.tog {
+  position: relative; width: 34px; height: 19px; cursor: pointer;
+  flex-shrink: 0;
+}
+.tog input { opacity: 0; width: 0; height: 0; position: absolute; }
+.tog-track {
+  position: absolute; inset: 0; background: var(--bd2);
+  border-radius: 99px; transition: background .2s;
+}
+.tog input:checked + .tog-track { background: #0A7DFA; }
+.tog-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #fff; transition: transform .2s; pointer-events: none;
+}
+.tog input:checked ~ .tog-thumb { transform: translateX(15px); }
+
+/* card body */
+.card-body { display: grid; grid-template-columns: 360px 1fr; }
+
+.left {
+  border-right: 0.5px solid var(--bd3);
+  display: flex; flex-direction: column; min-height: 580px;
+}
+.right {
+  display: flex; flex-direction: column;
+  max-height: 780px; overflow-y: auto;
+}
+
+/* Upload zone */
+.upload-wrap { padding: 1.1rem 1.1rem 0; }
+
+.zone {
+  border: 1.5px dashed var(--bd2); border-radius: 14px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+  background: var(--bg-secondary);
+  height: 210px; position: relative; overflow: hidden;
+}
+.zone:hover, .zone.over { border-color: #6366f1; background: rgba(99,102,241,.04); }
+
+.up-icon {
+  width: 38px; height: 38px; background: var(--bg-primary);
+  border: 0.5px solid var(--bd2); border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 9px; color: var(--text-secondary);
+}
+.up-text { font-size: 12px; font-weight: 500; color: var(--text-primary); text-align: center; line-height: 1.4; }
+.up-sub  { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; text-align: center; }
+.up-btn {
+  margin-top: 11px; background: var(--text-primary); color: var(--bg-primary);
+  border: none; padding: 6px 14px; border-radius: 7px;
+  font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity .2s;
+}
+.up-btn:hover { opacity: .82; }
+
+.prev-wrap { position: relative; width: 100%; height: 100%; display: none; }
+.prev-img  { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
+.prev-hover {
+  position: absolute; inset: 0; border-radius: 12px;
+  background: rgba(0,0,0,0); transition: background .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.zone:hover .prev-hover { background: rgba(0,0,0,.32); }
+.prev-hover-txt { color: #fff; font-size: 12px; font-weight: 500; opacity: 0; transition: opacity .2s; }
+.zone:hover .prev-hover-txt { opacity: 1; }
+
+.scan-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.78); border-radius: 12px;
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
+}
+.scan-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #6366f1, transparent);
+  animation: scanA 1.4s ease-in-out infinite;
+}
+@keyframes scanA { 0%{top:0} 100%{top:100%} }
+.scan-txt { color: rgba(255,255,255,.88); font-size: 11px; text-align: center; padding: 0 1rem; line-height: 1.5; }
+.dotrow { display: flex; gap: 5px; }
+.d { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; animation: db 1.2s infinite; }
+.d:nth-child(2){animation-delay:.2s} .d:nth-child(3){animation-delay:.4s}
+@keyframes db { 0%,80%,100%{transform:scale(.5);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+/* clear btn */
+.clear-btn {
+  display: none; width: calc(100% - 2.2rem);
+  margin: 6px 1.1rem 0;
+  background: none; border: 0.5px solid var(--bd2); border-radius: 7px;
+  font-family: inherit; font-size: 11px; color: var(--text-tertiary);
+  padding: 5px 0; cursor: pointer; transition: all .15s; text-align: center;
+}
+.clear-btn:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.04); }
+.clear-btn.on { display: block; }
+
+.err-box {
+  display: none; margin: .6rem 1.1rem 0;
+  background: #fef2f2; border: 0.5px solid #fca5a5;
+  border-radius: 8px; padding: 9px 11px;
+  font-size: 12px; color: #991b1b; line-height: 1.5;
+}
+.err-box.on { display: block; }
+
+/* Score */
+.score-area { padding: 1.1rem; display: none; }
+.sec-lbl { font-size: 10px; font-weight: 500; letter-spacing: .7px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 9px; }
+.score-row { display: flex; align-items: center; gap: 1.1rem; margin-bottom: .9rem; }
+.donut { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.donut svg { transform: rotate(-90deg); }
+.donut-num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.donut-big { font-size: 20px; font-weight: 600; color: var(--text-primary); line-height: 1; }
+.donut-sub { font-size: 9px; color: var(--text-tertiary); margin-top: 1px; }
+.score-meta h3 { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.score-meta p  { font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+
+.cat-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.cat-nm  { font-size: 11px; color: var(--text-secondary); width: 125px; flex-shrink: 0; }
+.bar-wrap { flex: 1; height: 4px; background: var(--bd3); border-radius: 99px; overflow: hidden; }
+.bar { height: 100%; border-radius: 99px; transition: width .9s cubic-bezier(.4,0,.2,1); }
+.cat-sc { font-size: 11px; font-weight: 500; width: 24px; text-align: right; color: var(--text-primary); }
+
+/* Tools */
+.tools-area {
+  border-top: 0.5px solid var(--bd3); padding: .9rem 1.1rem;
+  background: var(--bg-secondary); display: none; margin-top: auto;
+}
+.tools-lbl { font-size: 10px; font-weight: 500; letter-spacing: .7px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 7px; }
+.tools-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.tbtn {
+  font-family: inherit; font-size: 11px; color: var(--text-secondary);
+  background: var(--bg-primary); border: 0.5px solid var(--bd2);
+  border-radius: 7px; padding: 5px 10px; cursor: pointer; transition: all .15s;
+}
+.tbtn:hover:not(:disabled) { background: #6366f1; color: #fff; border-color: #6366f1; }
+.tbtn:disabled { opacity: .4; cursor: default; }
+.tool-out {
+  margin-top: 8px; background: var(--bg-primary);
+  border: 0.5px solid var(--bd3); border-radius: 8px; padding: 8px 10px;
+  font-size: 11px; color: var(--text-secondary); line-height: 1.6;
+  display: none; white-space: pre-wrap;
+}
+.tool-out.on { display: block; animation: fadeUp .3s ease; }
+
+/* Right panel */
+.rph {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem; gap: 8px; text-align: center;
+}
+.rph p { font-size: 13px; line-height: 1.5; color: var(--text-tertiary); }
+
+.thinking {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 3rem 2rem; gap: 12px; text-align: center; flex: 1;
+}
+.thinking.on { display: flex; }
+.think-txt { font-size: 13px; color: var(--text-tertiary); line-height: 1.5; }
+
+.awrap { display: none; flex-direction: column; }
+.awrap.on { display: flex; }
+
+.sblock { padding: 1.1rem 1.4rem; border-bottom: 0.5px solid var(--bd3); }
+.sblock:last-child { border-bottom: none; }
+.stitle { font-size: 10px; font-weight: 500; letter-spacing: .7px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 9px; }
+
+.gc {
+  background: var(--bg-success); border: 0.5px solid var(--bds);
+  border-radius: 8px; padding: 8px 10px;
+  display: flex; gap: 8px; align-items: flex-start; margin-bottom: 5px;
+}
+.gicon {
+  width: 15px; height: 15px; border-radius: 50%; background: #22c55e;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px; font-size: 9px; color: #fff;
+}
+.gc strong { font-size: 11px; font-weight: 500; color: var(--txs); display: block; }
+.gc span   { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+
+.ic {
+  border: 0.5px solid var(--bd2); border-radius: 8px; padding: 8px 10px;
+  cursor: pointer; transition: all .15s; background: var(--bg-primary); margin-bottom: 5px;
+}
+.ic:hover  { border-color: #f59e0b; background: rgba(245,158,11,.03); }
+.ic.active { border-color: #f59e0b; background: rgba(245,158,11,.05); }
+.ic-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 7px; }
+.ic-lft { display: flex; gap: 6px; align-items: flex-start; }
+.ic-icn  { font-size: 11px; margin-top: 1px; flex-shrink: 0; }
+.ic-ttl { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.ic-dsc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+.sb { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 99px; flex-shrink: 0; white-space: nowrap; }
+.sh { background: #fee2e2; color: #991b1b; }
+.sm { background: #fef3c7; color: #92400e; }
+.sl { background: #ecfdf5; color: #065f46; }
+
+.fix { margin-top: 7px; padding-top: 7px; border-top: 0.5px solid var(--bd3); display: none; }
+.fix.on { display: block; animation: fadeUp .2s ease; }
+.fix-lbl { font-size: 10px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 5px; }
+.fix-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.fix-list li { font-size: 11px; color: var(--text-secondary); padding-left: 12px; position: relative; line-height: 1.4; }
+.fix-list li::before { content:'→'; position: absolute; left: 0; color: #6366f1; }
+
+.rep-wrap { padding: 1.1rem 1.4rem; border-top: 0.5px solid var(--bd3); }
+.rep-btn {
+  display: block; width: 100%; background: var(--text-primary); color: var(--bg-primary);
+  border: none; padding: 10px; border-radius: 8px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: opacity .2s; text-align: center;
+}
+.rep-btn:hover:not(:disabled) { opacity: .82; }
+.rep-btn:disabled { opacity: .3; cursor: default; }
+
+/* Modal */
+.mbg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.52); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+.mbg.on { display: flex; }
+.modal {
+  background: var(--bg-primary); border-radius: 16px;
+  max-width: 560px; width: 100%; max-height: 82vh; overflow-y: auto; padding: 1.75rem;
+  box-shadow: 0 12px 60px rgba(0,0,0,.28); animation: fadeUp .25s ease;
+}
+.modal h2 { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 3px; }
+.modal-meta { font-size: 11px; color: var(--text-tertiary); margin-bottom: 1.25rem; }
+.mcls { float: right; background: none; border: 0.5px solid var(--bd2); border-radius: 6px; font-family: inherit; font-size: 11px; color: var(--text-secondary); padding: 3px 9px; cursor: pointer; }
+.rs { margin-bottom: 1.25rem; }
+.rs h3 { font-size: 11px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 7px; padding-bottom: 5px; border-bottom: 0.5px solid var(--bd3); }
+.rs p, .rs li { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 3px; }
+.rs ul { padding-left: 1rem; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.fi { animation: fadeUp .35s ease forwards; }
+
+#fileInput { display: none; }
+
+@media (max-width: 700px) {
+  .card-body { grid-template-columns: 1fr; }
+  .left { border-right: none; border-bottom: 0.5px solid var(--bd3); min-height: auto; }
+  .right { max-height: none; }
+  .card-header { padding: 1rem; }
+  .mode-bar { padding: .6rem 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ API KEY SCREEN ═══════════ -->
+<div id="apiScreen">
+  <div class="logo-row">
+    <span class="api-ai-badge">AI</span>
+    <span class="api-es-badge">ES</span>
+  </div>
+  <h1>Design Critique Engine</h1>
+  <p>Built for EssentiallySports. Enter your Anthropic API key to start — it stays in your browser and is never stored or sent anywhere except directly to Anthropic.</p>
+
+  <div class="api-err" id="apiErr"></div>
+
+  <div class="api-input-wrap">
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false" />
+    <button class="eye-btn" id="eyeBtn" onclick="toggleEye()" title="Show/hide key">
+      <svg id="eyeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+  </div>
+
+  <button class="api-submit" id="apiSubmit" onclick="submitKey()">Continue</button>
+
+  <div class="api-note">
+    Get your key at <a href="https://console.anthropic.com/account/keys" target="_blank">console.anthropic.com</a><br>
+    Your key is only used for direct API calls from your browser.
+  </div>
+</div>
+
+<!-- ═══════════ MAIN CARD ═══════════ -->
+<div id="mainCard">
+
+  <div class="card-header">
+    <div class="hdr-left">
+      <span class="ai-badge">AI</span>
+      <span class="es-badge" id="esBadge">ES</span>
+      <div>
+        <div class="card-title">Design Critique</div>
+        <div class="card-sub" id="cardSub">Real-time visual analysis</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="status-pill">
+        <div class="sdot"></div>
+        <span id="statusTxt">Ready</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">Change key</button>
+    </div>
+  </div>
+
+  <div class="mode-bar">
+    <div class="mode-lbl">Mode: <b id="modeLabel">General Design</b></div>
+    <div class="toggle-row">
+      <span class="toggle-txt">EssentiallySports guidelines</span>
+      <label class="tog">
+        <input type="checkbox" id="esToggle" onchange="onESToggle(this.checked)" />
+        <div class="tog-track"></div>
+        <div class="tog-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- LEFT PANEL -->
+    <div class="left">
+      <div class="upload-wrap">
+        <div class="zone" id="zone">
+          <div id="upDefault" style="display:flex;flex-direction:column;align-items:center;">
+            <div class="up-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div class="up-text">Upload your design<br>for instant AI critique</div>
+            <div class="up-sub">PNG · JPG · JPEG · Figma exports</div>
+            <button class="up-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">Choose file</button>
+          </div>
+          <div class="prev-wrap" id="prevWrap">
+            <img id="prevImg" class="prev-img" src="" alt="Design preview" />
+            <div class="prev-hover"><div class="prev-hover-txt">Click to change</div></div>
+            <div class="scan-overlay" id="scanOvl">
+              <div class="scan-line"></div>
+              <div class="dotrow"><div class="d"></div><div class="d"></div><div class="d"></div></div>
+              <div class="scan-txt">Analyzing visual hierarchy,<br>spacing, accessibility,<br>and typography…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="clear-btn" id="clearBtn" onclick="clearImage()">✕ Clear image</button>
+      <div class="err-box" id="errBox"></div>
+
+      <div class="score-area" id="scoreArea">
+        <div class="sec-lbl">Quality Score</div>
+        <div class="score-row">
+          <div class="donut">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--bd3)" stroke-width="5.5"/>
+              <circle cx="36" cy="36" r="30" fill="none" stroke="#6366f1" stroke-width="5.5"
+                stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"
+                id="scoreArc" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+            </svg>
+            <div class="donut-num">
+              <div class="donut-big" id="scoreNum">0</div>
+              <div class="donut-sub">/ 100</div>
+            </div>
+          </div>
+          <div class="score-meta">
+            <h3 id="scLabel">—</h3>
+            <p id="scDesc">—</p>
+          </div>
+        </div>
+        <div id="catRows"></div>
+      </div>
+
+      <div class="tools-area" id="toolsArea">
+        <div class="tools-lbl">Quick AI tools</div>
+        <div class="tools-grid" id="toolsGrid">
+          <button class="tbtn" onclick="runTool('contrast')">Color contrast</button>
+          <button class="tbtn" onclick="runTool('spacing')">Spacing</button>
+          <button class="tbtn" onclick="runTool('typography')">Typography</button>
+          <button class="tbtn" onclick="runTool('cta')">CTA improvements</button>
+        </div>
+        <div class="tool-out" id="toolOut"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right">
+      <div class="rph" id="rph">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--bd2)" stroke-width="1">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        <p>Upload a design to receive<br>personalised AI feedback</p>
+      </div>
+      <div class="thinking" id="thinking">
+        <div class="dotrow"><div class="d"></div><div class="d"></div><div class="d"></div></div>
+        <div class="think-txt">Claude is reviewing your design…<br>This takes a few seconds.</div>
+      </div>
+      <div class="awrap" id="aWrap">
+        <div class="sblock">
+          <div class="stitle">What works well</div>
+          <div id="goodCards"></div>
+        </div>
+        <div class="sblock">
+          <div class="stitle">Issues detected</div>
+          <div id="issueCards"></div>
+        </div>
+        <div class="rep-wrap">
+          <button class="rep-btn" id="repBtn" onclick="openModal()" disabled>Generate Full Report</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /mainCard -->
+
+<!-- Report Modal -->
+<div class="mbg" id="modalBg">
+  <div class="modal">
+    <button class="mcls" onclick="closeModal()">Close</button>
+    <h2>Full Design Report</h2>
+    <div class="modal-meta" id="modalMeta">AI-generated critique</div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp,.gif" />
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let apiKey   = sessionStorage.getItem('es_api_key') || '';
+let imgB64   = null;
+let imgMime  = null;
+let result   = null;
+let esMode   = false;
+let analyzing = false;
+const CIRC   = 188.5;
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+if (apiKey) showMain();
+
+// ─── API Key screen ───────────────────────────────────────────────────────────
+function toggleEye() {
+  const inp = document.getElementById('apiKeyInput');
+  const ico = document.getElementById('eyeIcon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    ico.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    inp.type = 'password';
+    ico.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitKey();
+});
+
+async function submitKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  const errEl = document.getElementById('apiErr');
+  errEl.classList.remove('show');
+
+  if (!val) { errEl.textContent = 'Please enter your API key.'; errEl.classList.add('show'); return; }
+  if (!val.startsWith('sk-ant-')) { errEl.textContent = 'That doesn\'t look like an Anthropic API key (should start with sk-ant-).'; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('apiSubmit');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': val, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] })
+    });
+    if (res.status === 401) throw new Error('Invalid API key — please check and try again.');
+    if (!res.ok && res.status !== 200) {
+      // 529 = overloaded, still means key is valid
+      if (res.status >= 500) { /* treat as valid */ }
+      else throw new Error(`API returned ${res.status} — please check your key.`);
+    }
+    apiKey = val;
+    sessionStorage.setItem('es_api_key', val);
+    showMain();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Continue';
+  }
+}
+
+function showMain() {
+  document.getElementById('apiScreen').style.display = 'none';
+  document.getElementById('mainCard').style.display = 'block';
+}
+
+function logout() {
+  apiKey = '';
+  sessionStorage.removeItem('es_api_key');
+  clearImage();
+  document.getElementById('mainCard').style.display = 'none';
+  document.getElementById('apiScreen').style.display = 'flex';
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiErr').classList.remove('show');
+  document.getElementById('apiSubmit').disabled = false;
+  document.getElementById('apiSubmit').textContent = 'Continue';
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const zone   = document.getElementById('zone');
+const fInput = document.getElementById('fileInput');
+
+fInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+zone.addEventListener('click', e => {
+  if (e.target.closest('button')) return;
+  if (document.getElementById('prevWrap').style.display === 'block') fInput.click();
+});
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file) {
+  if (!file.type.match(/image/)) {
+    showErr('Please upload an image file (PNG, JPG, JPEG, or WebP).'); return;
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    showErr('Image is too large (max 20 MB). Please resize and try again.'); return;
+  }
+  if (analyzing) return;
+
+  const reader = new FileReader();
+  reader.onerror = () => showErr('Could not read file. Please try again.');
+  reader.onload = e => {
+    imgMime = file.type === 'image/gif' ? 'image/gif' : file.type;
+    imgB64  = e.target.result.split(',')[1];
+
+    document.getElementById('upDefault').style.display = 'none';
+    document.getElementById('prevImg').src = e.target.result;
+    document.getElementById('prevWrap').style.display = 'block';
+    document.getElementById('scanOvl').style.display = 'flex';
+    document.getElementById('clearBtn').classList.add('on');
+
+    clearErr();
+    resetResults();
+    setStatus('Analyzing…');
+
+    document.getElementById('rph').style.display = 'none';
+    document.getElementById('thinking').classList.add('on');
+    document.getElementById('aWrap').classList.remove('on');
+
+    analyze();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  if (analyzing) return;
+  imgB64 = null; imgMime = null; result = null;
+  document.getElementById('upDefault').style.display = 'flex';
+  document.getElementById('prevWrap').style.display = 'none';
+  document.getElementById('prevImg').src = '';
+  document.getElementById('scanOvl').style.display = 'none';
+  document.getElementById('clearBtn').classList.remove('on');
+  clearErr(); resetResults();
+  document.getElementById('rph').style.display = 'flex';
+  document.getElementById('thinking').classList.remove('on');
+  document.getElementById('aWrap').classList.remove('on');
+  fInput.value = '';
+  setStatus('Ready');
+}
+
+function setStatus(t) { document.getElementById('statusTxt').textContent = t; }
+
+function resetResults() {
+  document.getElementById('scoreArea').style.display = 'none';
+  document.getElementById('toolsArea').style.display = 'none';
+  document.getElementById('catRows').innerHTML   = '';
+  document.getElementById('goodCards').innerHTML = '';
+  document.getElementById('issueCards').innerHTML = '';
+  const to = document.getElementById('toolOut');
+  to.classList.remove('on'); to.textContent = '';
+  document.getElementById('repBtn').disabled = true;
+  result = null;
+}
+
+// ─── ES toggle ────────────────────────────────────────────────────────────────
+function onESToggle(checked) {
+  esMode = checked;
+  document.getElementById('modeLabel').textContent = checked ? 'EssentiallySports' : 'General Design';
+  document.getElementById('esBadge').classList.toggle('on', checked);
+  document.getElementById('cardSub').textContent = checked ? 'ES brand guidelines enforced' : 'Real-time visual analysis';
+  if (imgB64 && result && !analyzing) {
+    resetResults();
+    document.getElementById('rph').style.display = 'none';
+    document.getElementById('thinking').classList.add('on');
+    document.getElementById('aWrap').classList.remove('on');
+    document.getElementById('scanOvl').style.display = 'flex';
+    setStatus('Re-analyzing…');
+    analyze();
+  }
+}
+
+// ─── Prompts ─────────────────────────────────────────────────────────────────
+const ES_GUIDELINES = `
+ESSENTIALLYSPORTS (ES) BRAND GUIDELINES — apply strictly:
+
+CANVAS & SAFE AREA:
+- Social post frame: 1080×1350px. Safe area: 980×1250px (50px margin all sides).
+- Short-form video: 1080×1920px.
+
+LOGO SYSTEM:
+- Three variants: Primary (horizontal), Secondary (2-line stacked), Tertiary (ES mark only).
+- Logo mark: 122×104px. Word mark: 417×49px. Min full lockup: 50×431px.
+- Exclusion zone: 50px clear space on all four sides — nothing may enter this zone.
+- Logo font: all-caps white text on ES Blue (#0A7DFA) container.
+- Swipe/CTA button PRESENT → logo top-left corner, 50px margin.
+- NO swipe/CTA button → logo top-right corner, 50px margin.
+
+COLOR RULES (CRITICAL):
+- ES Blue #0A7DFA: ONLY for the logo container. NEVER in headlines, pills, backgrounds, or any other element.
+- ES official coverage mist: #0A7DFA only.
+- Team colors must come from the team's OFFICIAL unedited logo — no approximations.
+- Pill text color = team highlight color from official logo.
+- Pill background color ≠ mist background color (they must differ).
+- Black mist: reserved EXCLUSIVELY for Quote Templates.
+- Black/white pills: ONLY on Quote posts.
+
+TYPOGRAPHY (CRITICAL):
+- Font: Acumin Pro Condensed Black — the ONLY permitted font for social headlines and pill text.
+- No other fonts allowed for overlay text.
+
+PILLS:
+- Single-line ONLY. Multi-line text must be split into separate pills.
+- Internal padding is based on the cap height of a flat-end character (e.g. "N" or "E").
+- Pill text color = team highlight color. Pill bg = team color (not black/white except Quote posts).
+
+MIST SYSTEM:
+- All mist overlays: 1080×404px at 90% opacity.
+- Mist color = team's official color. Black mist = Quote Templates only.
+- Mist color ≠ pill color.
+
+SWIPE BUTTON: 200×56px, bottom-right corner, 50px margin.
+
+SUB-BRAND ACCENT COLORS:
+- Lucky Dog on Track (NASCAR): yellow
+- Essentially Golf: green
+- She Got Game (WNBA): orange
+- Essentially Dunk (NBA): blue
+- Essentially CFB (college football): maroon
+- The Huddle / Chiefs / Cowboys / Steelers Huddle: team-specific
+- Break Point (Tennis): navy
+
+VIDEO:
+- ES icon: top-right, 50px margin, 48×42px fixed.
+- Subtitle pills: team highlight color, Acumin Pro Condensed Black.
+- Middle divider strip: team highlight color.
+- No collage on opening slide. Cut-out style: hero slider ONLY.
+
+HIGH-SEVERITY VIOLATIONS (flag as High):
+- #0A7DFA used outside logo container
+- Any font other than Acumin Pro Condensed Black for overlay text
+- Multi-line text in a single pill
+- Dark/blurry/side-profile subject images
+- Pill and mist using the same color
+- Black or white pills on non-Quote posts
+- Logo in wrong corner, wrong size, or inside exclusion zone
+- Ticker labels other than: Originals, Breaking, Trending, Exclusive, Top Pick
+- Team colors not from official unedited logo
+- Collage on opening slide
+- Cut-out style used outside hero slider
+`;
+
+const GENERAL_SYS = `You are an expert UI/UX and graphic design critic. Analyze the uploaded design image carefully and respond ONLY with a valid JSON object — no markdown fences, no preamble, no trailing text.
+
+JSON structure:
+{
+  "overallScore": <integer 0-100>,
+  "scoreLabel": "<Needs Work|Fair|Good Design|Strong Design|Excellent>",
+  "scoreDesc": "<one sentence summary of the design>",
+  "categories": [
+    {"name":"Visual Hierarchy","score":<0-100>},
+    {"name":"Accessibility","score":<0-100>},
+    {"name":"Spacing & Layout","score":<0-100>},
+    {"name":"Typography","score":<0-100>},
+    {"name":"Color Contrast","score":<0-100>}
+  ],
+  "goodPoints": [
+    {"title":"<specific strength>","desc":"<one sentence about what you see>"}
+  ],
+  "issues": [
+    {"title":"<specific issue>","desc":"<one sentence about the visible problem>","severity":"<High|Medium|Low>","fixes":["<fix 1>","<fix 2>","<fix 3>"]}
+  ],
+  "report": {
+    "usability": "<2-3 sentences>",
+    "accessibility": ["<point>","<point>","<point>"],
+    "layout": ["<suggestion>","<suggestion>","<suggestion>"],
+    "typography": ["<rec>","<rec>","<rec>"],
+    "color": "<2 sentences>"
+  }
+}
+
+Be specific to what you see. Include 3-4 goodPoints and 3-5 issues. No placeholder text.`;
+
+const ES_SYS = `You are an expert design critic specialising in EssentiallySports brand compliance. Analyze this image strictly against the ES guidelines provided. Respond ONLY with a valid JSON object — no markdown fences, no preamble.
+
+${ES_GUIDELINES}
+
+Score based on ES brand compliance. Flag every violation. Note everything done correctly.
+
+JSON structure:
+{
+  "overallScore": <integer 0-100, brand compliance score>,
+  "scoreLabel": "<Needs Work|Fair|Good Design|Strong Design|Excellent>",
+  "scoreDesc": "<one sentence on ES brand compliance>",
+  "categories": [
+    {"name":"Logo Placement","score":<0-100>},
+    {"name":"Color Compliance","score":<0-100>},
+    {"name":"Typography","score":<0-100>},
+    {"name":"Pill & Mist Rules","score":<0-100>},
+    {"name":"Safe Area & Layout","score":<0-100>}
+  ],
+  "goodPoints": [
+    {"title":"<ES guideline being followed>","desc":"<one sentence on what you see that complies>"}
+  ],
+  "issues": [
+    {"title":"<specific ES rule violation>","desc":"<one sentence on the visible violation>","severity":"<High|Medium|Low>","fixes":["<ES-specific fix 1>","<ES-specific fix 2>","<ES-specific fix 3>"]}
+  ],
+  "report": {
+    "usability": "<2-3 sentences on post communication effectiveness>",
+    "accessibility": ["<point>","<point>","<point>"],
+    "layout": ["<ES canvas/safe area suggestion>","<suggestion>","<suggestion>"],
+    "typography": ["<Acumin Pro compliance note>","<rec>","<rec>"],
+    "color": "<2 sentences on ES color compliance>"
+  }
+}
+
+Be highly specific. Reference exact ES rule names. Note what you can and cannot verify from the image. Include 3-4 goodPoints and 3-6 issues.`;
+
+// ─── Analyze ─────────────────────────────────────────────────────────────────
+async function analyze() {
+  analyzing = true;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: esMode ? ES_SYS : GENERAL_SYS,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: imgMime, data: imgB64 } },
+            { type: 'text',  text: 'Analyze this design and return the JSON critique.' }
+          ]
+        }]
+      })
+    });
+
+    if (res.status === 401) throw new Error('API key is invalid or expired. Click "Change key" to update it.');
+    if (res.status === 429) throw new Error('Rate limit reached. Please wait a moment and try again.');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.error?.message || `API returned status ${res.status}.`);
+    }
+
+    const data  = await res.json();
+    const raw   = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = raw.replace(/^```json\s*/i, '').replace(/\s*```$/,'').trim();
+
+    let parsed;
+    try { parsed = JSON.parse(clean); }
+    catch { throw new Error('Claude returned an unexpected response. Please try again.'); }
+
+    result = parsed;
+    document.getElementById('scanOvl').style.display = 'none';
+    document.getElementById('thinking').classList.remove('on');
+    renderAll(result);
+    setStatus('Done');
+
+  } catch (err) {
+    document.getElementById('scanOvl').style.display = 'none';
+    document.getElementById('thinking').classList.remove('on');
+    document.getElementById('rph').style.display = 'flex';
+    showErr(err.message);
+    setStatus('Error');
+  } finally {
+    analyzing = false;
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderAll(r) {
+  document.getElementById('aWrap').classList.add('on');
+  renderGood(r.goodPoints || []);
+  renderIssues(r.issues || []);
+  document.getElementById('repBtn').disabled = false;
+
+  document.getElementById('scoreArea').style.display = 'block';
+  document.getElementById('toolsArea').style.display = 'block';
+  document.getElementById('scLabel').textContent = r.scoreLabel || '—';
+  document.getElementById('scDesc').textContent  = r.scoreDesc  || '';
+  animScore(r.overallScore || 0);
+  renderCats(r.categories || []);
+  updateToolLabels();
+}
+
+function animScore(target) {
+  const n = document.getElementById('scoreNum');
+  const a = document.getElementById('scoreArc');
+  const t0 = performance.now();
+  (function step(now) {
+    const p = Math.min((now - t0) / 1100, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    n.textContent = Math.round(e * target);
+    a.style.strokeDashoffset = CIRC - (CIRC * e * target / 100);
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+function bc(s) { return s >= 80 ? '#22c55e' : s >= 65 ? '#f59e0b' : '#ef4444'; }
+
+function renderCats(cats) {
+  const c = document.getElementById('catRows');
+  c.innerHTML = '';
+  cats.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    row.innerHTML = `<span class="cat-nm">${esc(cat.name)}</span>
+      <div class="bar-wrap"><div class="bar" style="width:0%;background:${bc(cat.score)};" data-t="${cat.score}"></div></div>
+      <span class="cat-sc">${cat.score}</span>`;
+    c.appendChild(row);
+  });
+  setTimeout(() => c.querySelectorAll('.bar').forEach(b => { b.style.width = b.dataset.t + '%'; }), 80);
+}
+
+function renderGood(items) {
+  const c = document.getElementById('goodCards');
+  c.innerHTML = '';
+  items.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'gc fi';
+    el.style.animationDelay = (i * .07) + 's';
+    el.innerHTML = `<div class="gicon">✓</div>
+      <div><strong>${esc(item.title)}</strong><span>${esc(item.desc)}</span></div>`;
+    c.appendChild(el);
+  });
+}
+
+function renderIssues(items) {
+  const c = document.getElementById('issueCards');
+  c.innerHTML = '';
+  items.forEach((issue, i) => {
+    const card = document.createElement('div');
+    card.className = 'ic fi';
+    card.style.animationDelay = (i * .08 + .1) + 's';
+    const sev = (issue.severity || 'medium').toLowerCase();
+    const sc  = sev === 'high' ? 'sh' : sev === 'low' ? 'sl' : 'sm';
+    const fixes = (issue.fixes || []).map(f => `<li>${esc(f)}</li>`).join('');
+    card.innerHTML = `
+      <div class="ic-top">
+        <div class="ic-lft">
+          <span class="ic-icn">⚠</span>
+          <div>
+            <div class="ic-ttl">${esc(issue.title)}</div>
+            <div class="ic-dsc">${esc(issue.desc)}</div>
+          </div>
+        </div>
+        <span class="sb ${sc}">${esc(issue.severity || 'Medium')}</span>
+      </div>
+      <div class="fix" id="fx${i}">
+        <div class="fix-lbl">AI fix suggestions</div>
+        <ul class="fix-list">${fixes}</ul>
+      </div>`;
+    card.addEventListener('click', () => {
+      const fx  = document.getElementById('fx' + i);
+      const was = fx.classList.contains('on');
+      document.querySelectorAll('.fix').forEach(el => el.classList.remove('on'));
+      document.querySelectorAll('.ic').forEach(el => el.classList.remove('active'));
+      if (!was) { fx.classList.add('on'); card.classList.add('active'); }
+    });
+    c.appendChild(card);
+  });
+}
+
+function updateToolLabels() {
+  const general = ['Color contrast','Spacing','Typography','CTA improvements'];
+  const es      = ['Color compliance','Safe area check','Font & pill rules','CTA & logo check'];
+  document.querySelectorAll('.tbtn').forEach((b, i) => {
+    b.textContent = (esMode ? es : general)[i] || b.textContent;
+  });
+}
+
+// ─── Quick tools ─────────────────────────────────────────────────────────────
+const GENERAL_TOOLS = {
+  contrast:   'Look at this design image. Give exactly 3 specific actionable color contrast improvements. Reference actual visible elements. One line each, numbered.',
+  spacing:    'Look at this design image. Give exactly 3 specific spacing/layout fixes. Reference actual visible elements. One line each, numbered.',
+  typography: 'Look at this design image. Give exactly 3 specific typography improvements. Reference actual visible text. One line each, numbered.',
+  cta:        'Look at this design image. Give exactly 3 specific CTA/button improvements. Reference actual visible buttons. One line each, numbered.',
+};
+const ES_TOOLS = {
+  contrast:   'Review this EssentiallySports design for color compliance. Is #0A7DFA used outside the logo? Do pill and mist colors differ? Are team colors from official logos? Give 3 specific ES color fixes. One line each, numbered.',
+  spacing:    'Review this EssentiallySports design for canvas/safe area compliance. Is content within 980×1250px safe area? Is logo in the correct corner with 50px margin? Is the swipe button 200×56px at bottom-right? Give 3 specific fixes. One line each, numbered.',
+  typography: 'Review this EssentiallySports design for typography compliance. Is Acumin Pro Condensed Black the only font used? Are all pills single-line? Is pill padding based on cap height? Give 3 specific ES typography fixes. One line each, numbered.',
+  cta:        'Review this EssentiallySports design for CTA and logo placement compliance. Is the swipe button 200×56px at bottom-right with 50px margin? Is the logo in the correct corner? Give 3 specific fixes. One line each, numbered.',
+};
+
+async function runTool(type) {
+  if (!imgB64 || !result || analyzing) return;
+  const out  = document.getElementById('toolOut');
+  const btns = document.querySelectorAll('.tbtn');
+  btns.forEach(b => b.disabled = true);
+  out.textContent = 'Generating suggestions…';
+  out.classList.add('on');
+
+  try {
+    const prompt = (esMode ? ES_TOOLS : GENERAL_TOOLS)[type];
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: imgMime, data: imgB64 } },
+            { type: 'text',  text: prompt }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    out.textContent = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+  } catch {
+    out.textContent = 'Could not generate suggestions. Please try again.';
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// ─── Report modal ─────────────────────────────────────────────────────────────
+function openModal() {
+  if (!result) return;
+  const r   = result;
+  const rep = r.report || {};
+  const li  = arr => (arr || []).map(i => `<li>${esc(i)}</li>`).join('');
+  document.getElementById('modalMeta').textContent = `AI-generated critique · Design score: ${r.overallScore}/100`;
+  document.getElementById('modalContent').innerHTML = `
+    <div class="rs"><h3>Usability</h3><p>${esc(rep.usability || '—')}</p></div>
+    <div class="rs"><h3>Accessibility</h3><ul>${li(rep.accessibility)}</ul></div>
+    <div class="rs"><h3>Layout Improvements</h3><ul>${li(rep.layout)}</ul></div>
+    <div class="rs"><h3>Typography</h3><ul>${li(rep.typography)}</ul></div>
+    <div class="rs"><h3>Color & Contrast</h3><p>${esc(rep.color || '—')}</p></div>`;
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function closeModal() { document.getElementById('modalBg').classList.remove('on'); }
+document.getElementById('modalBg').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function showErr(m) { const b = document.getElementById('errBox'); b.textContent = m; b.classList.add('on'); }
+function clearErr()  { document.getElementById('errBox').classList.remove('on'); }
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>
