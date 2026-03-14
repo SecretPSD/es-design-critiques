@@ -649,30 +649,12 @@ async function submitKey() {
 
   if (!val) { errEl.textContent = 'Please enter your API key.'; errEl.classList.add('show'); return; }
   if (!val.startsWith('sk-ant-')) { errEl.textContent = 'That doesn\'t look like an Anthropic API key (should start with sk-ant-).'; errEl.classList.add('show'); return; }
+  if (val.length < 40) { errEl.textContent = 'API key looks too short — please copy the full key from console.anthropic.com.'; errEl.classList.add('show'); return; }
 
-  const btn = document.getElementById('apiSubmit');
-  btn.disabled = true; btn.textContent = 'Verifying…';
-
-  try {
-    const res = await fetch('https://es-critique-2026.businesswithsuhail.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': val, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] })
-    });
-    if (res.status === 401) throw new Error('Invalid API key — please check and try again.');
-    if (!res.ok && res.status !== 200) {
-      // 529 = overloaded, still means key is valid
-      if (res.status >= 500) { /* treat as valid */ }
-      else throw new Error(`API returned ${res.status} — please check your key.`);
-    }
-    apiKey = val;
-    sessionStorage.setItem('es_api_key', val);
-    showMain();
-  } catch (err) {
-    errEl.textContent = err.message;
-    errEl.classList.add('show');
-    btn.disabled = false; btn.textContent = 'Continue';
-  }
+  // Key format looks valid — go straight in, any auth errors will show on first analysis
+  apiKey = val;
+  sessionStorage.setItem('es_api_key', val);
+  showMain();
 }
 
 function showMain() {
